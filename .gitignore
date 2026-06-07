@@ -1,13 +1,30 @@
 # Секреты и локальные переменные окружения
 .env
-.env.*
-!.env.example
+.env.production
+.env.local
+
+# Ключи и сертификаты
+*.pem
+*.key
+*.pub
+certs/
 
 # Временные файлы ОС и IDE
 .DS_Store
 .idea/
 .vscode/
+*.swp
+*.swo
+Thumbs.db
+desktop.ini
 
 # Логи
 *.log
 logs/
+*.pid
+*.sock
+
+# Временные файлы скриптов и тестов
+__pycache__/
+.venv/
+venv/

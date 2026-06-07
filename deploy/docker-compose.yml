@@ -6,6 +6,87 @@ networks:
     # Кастомная сеть для сервисов
 
 services:
-  # Заготовка под будущие сервисы. 
-  #  Prometheus, Grafana и экспортеры.
-  
+  node_exporter:
+    image: prom/node-exporter:v1.8.1
+    container_name: node_exporter
+    # Запуск от непривилегированного пользователя (nobody)
+    user: "65534:65534"
+    restart: unless-stopped
+    volumes:
+      # Монтирование системных каталогов в режиме ro (read-only)
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      # Монтируем директорию с сертификатами и конфигом
+      - ../config/node_exporter:/etc/node_exporter:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--web.config.file=/etc/node_exporter/web-config.yml'
+    networks:
+      - monitoring-net
+
+  # 2. Сборщик метрик контейнеров
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    privileged: false
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks:
+      - monitoring-net
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: prometheus
+    user: "65534:65534"
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION}'
+    volumes:
+      - ../config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - monitoring-net
+    # Оптимизация производительности
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          memory: 512M
+    # Проверка жизнеспособности 
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  grafana:
+    image: grafana/grafana-oss:10.0.3
+    container_name: grafana
+    user: "472:472"
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../config/grafana/dashboards:/etc/grafana/dashboards:ro
+    networks:
+      - monitoring-net
+    depends_on:
+      prometheus:
+        condition: service_healthy
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

@@ -1,0 +1,26 @@
+# @file prometheus.yml
+# @brief Конфигурация источника данных Prometheus для Grafana.
+# @author Попов В.Д.
+# @date 2026-06-07
+# @version 1.0.0
+# @license GNU GPLv3
+#
+# @details
+# Файл обеспечивает автоматическое подключение базы данных Prometheus
+# при старте контейнера Grafana. Редактирование через UI заблокировано
+# для соответствия парадигме Infrastructure as Code (IaC).
+# ====================================================================
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    # Запросы к БД от backend Grafana
+    access: proxy 
+    # Обращение идет по внутреннему DNS-имени сервиса из docker-compose.yml
+    url: http://prometheus:9090
+    # Текущий источник данных основной по умолчанию
+    isDefault: true
+    # Запрет на изменение настроек через веб-интерфейс
+    editable: false
