@@ -1,0 +1,11 @@
+# deploy/docker-compose.yml
+
+networks:
+  monitoring-net:
+    driver: bridge
+    # Кастомная сеть для сервисов
+
+services:
+  # Заготовка под будущие сервисы. 
+  #  Prometheus, Grafana и экспортеры.
+  
