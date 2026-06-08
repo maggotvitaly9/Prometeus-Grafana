@@ -65,12 +65,13 @@ services:
       timeout: 5s
       retries: 3
   # Node
-  node_exporter:
-    image: prom/node-exporter:v1.8.1
-    container_name: node_exporter
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: node-exporter
     restart: unless-stopped
     pid: host
-    network_mode: host
+    networks:
+      - monitoring-net
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -78,7 +79,9 @@ services:
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
-      - '--web.config.file=/etc/node_exporter/web-config.yml'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--web.listen-address=:9100'
 
   # Сadvisor
   cadvisor:
@@ -86,12 +89,14 @@ services:
     container_name: cadvisor
     privileged: true
     restart: unless-stopped
+    pid: host
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     devices:
       - /dev/kmsg
     ports:
