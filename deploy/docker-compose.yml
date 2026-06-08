@@ -21,9 +21,9 @@ services:
       - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION}'
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle
+      - '--web.enable-lifecycle'
     volumes:
-      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     ports:
       - "9090:9090"
@@ -36,7 +36,7 @@ services:
       retries: 3
   # Grafana
   grafana:
-    image: grafana/11.1.0
+    image: grafana/grafana:11.1.0
     container_name: grafana
     user: "472:472"
     restart: unless-stopped
@@ -47,13 +47,13 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./config/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-      - ./config/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./config/grafana/dashboards:/etc/grafana/dashboards:ro
+      - ../config/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ../config/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../config/grafana/dashboards:/var/lib/grafana/dashboards:ro
     networks:
       - monitoring-net
     depends_on:
@@ -100,5 +100,7 @@ services:
       - monitoring-net
 
 volumes:
-  prometheus-data:
-  grafana-data:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
