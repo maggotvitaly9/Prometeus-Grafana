@@ -14,6 +14,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="${SCRIPT_DIR}/.."
+cd "${PROJECT_ROOT}"
+
 echo "==================================================="
 echo "  Инициализация среды мониторинга (IaC Mode)"
 echo "==================================================="
@@ -59,7 +63,31 @@ else
     echo "LOG: Сертификаты уже существуют."
 fi
 
-# 5. Загрузка дашбордов Grafana
+# 5. 
+echo "LOG: Проверка наличия утилиты htpasswd..."
+if ! command -v htpasswd &> /dev/null; then
+    echo "LOG: Утилита htpasswd не найдена. Устанавливаю пакет apache2-utils..."
+    sudo apt-get update -qq && sudo apt-get install -y apache2-utils -qq
+fi
+
+echo "LOG: Генерация web-config.yml для Node Exporter..."
+mkdir -p config/node_exporter
+
+# bcrypt-хэш (-B) пароля
+HASHED_PASSWORD=$(htpasswd -nbB admin "${INPUT_NODE_PASS}" | cut -d ":" -f 2)
+
+# Создаем файл настроек с подставленным хэшем
+cat << EOF > config/node_exporter/web-config.yml
+tls_server_config:
+  cert_file: /etc/certs/cert.pem
+  key_file: /etc/certs/key.pem
+
+basic_auth_users:
+  admin: '${HASHED_PASSWORD}'
+EOF
+echo "SUCCESS: web-config.yml успешно сгенерирован!"
+
+# 6. Загрузка дашбордов Grafana
 echo "LOG: Подготовка каталога дашбордов..."
 mkdir -p config/grafana/dashboards
 rm -f config/grafana/dashboards/*.json
